@@ -664,31 +664,6 @@ gc_exit()
 	my_free(E.stack.data);
 }
 
-/* only for debug, print all the relationship of all nodes */
-
-void
-gc_print()
-{
-	int i;
-	printf("------print begin----\n");
-	stack_pack();
-	cache_flush();
-	for (i=0;i<E.size;i++) {
-		int j;
-		if (E.pool[i].mark>=E.mark-1) {
-			struct link *link=E.pool[i].u.n.children;
-			printf("%d(%p):",i,E.pool[i].u.n.mem);
-			if (link) {
-				for (j=0;j<link->number;j++) {
-					printf("%d,",link->children[j]);
-				}
-			}
-			printf("\n");
-		}
-	}
-	printf("------print end------\n");
-}
-
 /* mark the nodes related to root */
 
 static void
@@ -729,6 +704,41 @@ gc_collect()
 		}
 	}
 	E.mark++;
+}
+
+/* only for debug, print all the relationship of all nodes */
+
+void
+gc_dryrun()
+{
+	int i;
+	printf("------dry run begin----\n");
+	stack_pack();
+	cache_flush();
+	gc_mark(0);
+	for (i=0;i<E.size;i++) {
+		struct link *link=E.pool[i].u.n.children;
+
+		if (E.pool[i].mark >= E.mark) {
+			printf("%d(%p) -> ",i,E.pool[i].u.n.mem);
+		}
+		else if (E.pool[i].mark >= 0 ) {
+			printf("x %d(%p): ",i,E.pool[i].u.n.mem);
+		}
+		else {
+			continue;
+		}
+		if (link) {
+			int j;
+			for (j=0;j<link->number;j++) {
+				printf("%d,",link->children[j]);
+			}
+		}
+
+		printf("\n");
+	}
+	E.mark++;
+	printf("------dry run end------\n");
 }
 
 /* allocate a memory block , and create a node map to it */

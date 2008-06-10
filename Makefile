@@ -20,4 +20,4 @@ test.exe: test.c gc.c
 	$(CC) $@ $^
 
 clean:
-	$(RM) *.obj *.o *.exe
+	$(RM) test.exe

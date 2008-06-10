@@ -35,31 +35,51 @@ static void *
 test()
 {
 	struct test *p;
+	int i;
 
 	gc_enter();
 
-	p=new_test();
+	gc_enter();
+		for (i=0;i<4;i++) {
+			p=new_test();
+		}
 
-	/* p and q will not be collected */
+	/* after gc_leave , only last p leave in the stack */
+	gc_leave(p,0);
+
+	/* p will not be collected */
 	gc_collect();
-	gc_print();
 
 	p->next=new_test();
 	gc_link(p,0,p->next);
 
-	gc_print();
+	gc_dryrun();
 
-	/* p will be collect after gc_leave, but p->next should not. */
+	/* p will not be exist on the stack after gc_leave , it can be collected. */
 	gc_leave(p->next,0);
+
+	if (gc_weak(p)) {
+		/* p is alive because we don't call gc_collect to collect it */
+		printf("%p is alive\n",p);
+	}
+
 	return p->next;
 }
 
 int	
 main()
 {
+	struct test *p;
 	gc_init();
-	test();
+
+	p=test();
+
 	gc_collect();
+
+	if (gc_weak(p)) {
+		printf("%p is alive\n",p);
+	}
+
 	gc_exit();
 	return 0;
 }

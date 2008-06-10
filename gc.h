@@ -27,6 +27,6 @@ void gc_collect();
 void* gc_clone(void *from,size_t sz);
 void* gc_weak(void *p);
 
-void gc_print();
+void gc_dryrun();
 
 #endif
