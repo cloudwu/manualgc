@@ -34,44 +34,6 @@ typedef int intptr_t;
 
 #define CACHE_BITS 10
 
-/*
-
-static int memory=0;
-
-void* my_malloc(size_t s)
-{
-	void *ret=malloc(s);
-	printf("my_malloc %p\n",ret);
-	++memory;
-	return ret;
-}
-
-void my_free(void *p)
-{
-	if (p) {
-		if ((intptr_t)p==0x00371018) {
-			p=p;
-		}
-		--memory;
-		printf("my_free %p\n",p);
-		free(p);
-	}
-}
-
-void* my_realloc(void *p,size_t sz)
-{
-	void *ret=realloc(p,sz);
-	if (p==0) {
-		++memory;
-	}
-	if (sz==0) {
-		--memory;
-	}
-	printf("my_realloc %p -> %p\n",p,ret);
-	return ret;
-}
-*/
-
 struct node;
 
 struct link {
@@ -238,15 +200,6 @@ link_expand(struct link *old,int sz)
 			return old;
 		}
 	}
-	/* set sz to 2^n -1 
-
-	sz|=sz>>1;
-	sz|=sz>>2;
-	sz|=sz>>4;
-	sz|=sz>>8;
-	sz|=sz>>16;
-
-	*/
 
 	sz=sz*2-1;
 
