@@ -10,8 +10,8 @@
 #	For MSVC, use CC = cl /o , or CC = gcc -o for gcc
 #
 
-CC= cl /o
-#CC= gcc -o
+#CC= cl /W3 /o 
+CC= gcc -Wall -o
 
 #RM= rm
 RM= del

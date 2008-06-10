@@ -20,6 +20,7 @@ void gc_enter();
 void gc_leave(const void *p,...);
 
 void* gc_malloc(size_t sz);
+void* gc_realloc(const char *p,size_t sz);
 void gc_link(const void *parent,const void *prev,const void *now);
 void gc_collect();
 
