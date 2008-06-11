@@ -741,15 +741,20 @@ gc_dryrun()
 	printf("------dry run end------\n");
 }
 
-/* allocate a memory block , and create a node map to it */
+/* allocate a memory block , and create a node map to it. node will link to parent */
 
 void*
-gc_malloc(size_t sz,void (*finalization)(void *))
+gc_malloc(size_t sz,void *parent,void (*finalization)(void *))
 {
 	void *ret=my_malloc(sz);
 	int id=map_id(ret);
 	E.pool[id].u.n.finalization=finalization;
-	stack_push(id);
+	if (parent) {
+		gc_link(parent,0,ret);
+	}
+	else {
+		stack_push(id);
+	}
 	return ret;
 }
 
@@ -772,16 +777,16 @@ gc_clone(void *from,size_t sz)
 	return to;
 }
 
-/* realloc a memory block , all the edages linked to it will be retained , but you should relink it to others */
+/* realloc a memory block , all the edages linked to it will be retained */
 
 void*
-gc_realloc(void *p,size_t sz)
+gc_realloc(void *p,size_t sz,void *parent)
 {
 	void *ret;
 	assert(sz>0);
 
 	if (p==0) {
-		return gc_malloc(sz,0);
+		return gc_malloc(sz,parent,0);
 	}
 
 	ret=my_realloc(p,sz);
@@ -798,7 +803,12 @@ gc_realloc(void *p,size_t sz)
 
 		E.pool[new_id].u.n.finalization=E.pool[old_id].u.n.finalization;
 
-		stack_push(new_id);
+		if (parent) {
+			gc_link(parent,p,ret);
+		}
+		else {
+			stack_push(new_id);
+		}
 	}
 
 	return ret;

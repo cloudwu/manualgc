@@ -1,0 +1,106 @@
+	A manual garbage collector for C
+
+	Copyright (c) 2008 ,
+	 	Cloud Wu . All rights reserved.
+
+	http://code.google.com/p/manualgc/
+	http://www.codingnow.com
+
+	ANY USE IS AT YOUR OWN RISK
+
+At first, you should call "gc_init" to initialize the environment. 
+You may not call "gc_exit" at the end, becuase the OS will release
+all the resouce used by your process.
+
+	void
+	gc_init();
+
+	void
+	gc_exit();
+
+Then, you can use 'gc_malloc' to allocate a memory block . It's return
+value is the pointer to the memory (like malloc).
+
+	void* 
+	gc_malloc(size_t sz,void *parent,void (*finalization)(void *));
+
+	void* 
+	gc_realloc(void *p,size_t sz,void *parent);
+
+	*sz* is the the size requested
+
+	*parent* should be the memory's life time depend on.
+		*parent* can be 0 , that is to say the memory is temporary.
+
+	*finalization* will be called when the memory collect.
+		*finalization* can be 0 , collector will do nothing.
+
+"gc_enter" and "gc_leave" is important , they tell the collector the
+life time of temporary memory blocks. All the memory allocated by 
+"gc_new" after a "gc_enter" can be collect after "gc_leave", only if
+you link them to the others be related to the root , or tell "gc_leave"
+what you want to extend the life time.
+
+	void 
+	gc_enter();
+
+	void 
+	gc_leave(void *p,...);
+
+You don't need put enter/leave in every function. If your program have a
+main loop, put one "gc_enter" before entering the main loop, and put one 
+"gc_leave" is enough. For example:
+
+	while (!quit) {
+		gc_enter();
+		quit=mainloop();
+		gc_leave(0);
+	}
+
+You can use "gc_link" to establish or remove the relationship of two 
+memory block. (ps. Pass parent into gc_malloc or gc_realloc will establish 
+the relationship automatic)
+
+	void 
+	gc_link(void *parent,void *prev,void *now);
+
+	Unlink "prev" from "parent" first, and then link "now" to the 
+	"parent". For example, If you do 
+
+		a->b = c;	// a and c are both gc memory block
+	
+	Then you should call
+
+		gc_link(a,a->b,c);
+
+	You can also link a memory block to the root by pass "parent" 0.
+	This is useful when you want to hold a global variable.
+
+Sometimes, we want to know whether a raw pointer is collected. 
+"gc_weak" can detect it.
+
+	void* 
+	gc_weak(void *p);
+
+	Return p, when the p is the gc memory block, and it isn't 
+	collected yet.
+
+Collector will not be executed automaticly. 
+
+	void 
+	gc_collect();
+
+	This will collect all the memory block can no longer be 
+	otherwise accessed. Before free it , collector will can the 
+	finalization if you provided.
+
+	void 
+	gc_dryrun();
+
+	Only for debug, it's print some useful information instead of 
+	collecting the garbage.
+
+
+
+
+

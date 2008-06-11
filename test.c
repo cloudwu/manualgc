@@ -23,11 +23,17 @@ log_ptr(void *p)
 }
 
 static struct test *
-new_test()
+new_test(struct test *parent)
 {
-	struct test *ret=(struct test*)gc_malloc(sizeof(struct test),log_ptr);
+	struct test *ret=(struct test*)gc_malloc(sizeof(struct test),parent,log_ptr);
 	printf("new %p\n",ret);
-	ret->next=0;
+	if (parent) {
+		ret->next=parent->next;
+		parent->next=ret;
+	}
+	else {
+		ret->next=0;
+	}
 	return ret;
 }
 
@@ -41,7 +47,7 @@ test()
 
 	gc_enter();
 		for (i=0;i<4;i++) {
-			p=new_test();
+			p=new_test(0);
 		}
 
 	/* after gc_leave , only last p leave in the stack */
@@ -50,8 +56,7 @@ test()
 	/* p will not be collected */
 	gc_collect();
 
-	p->next=new_test();
-	gc_link(p,0,p->next);
+	p->next=new_test(p);
 
 	gc_dryrun();
 
