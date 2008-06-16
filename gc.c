@@ -441,22 +441,6 @@ map_id(void *p)
 	return node->id;
 }
 
-/* Detect whether the pointer p collected . Return 0 if the p is collected, otherwise return itself	*/
-
-void *
-gc_weak(void *p)
-{
-	int h=hash(p);
-	struct hash_node *node=E.map.table[h & (E.map.size -1)];
-	while (node) {
-		if (E.pool[node->id].u.n.mem==p) {
-			return p;
-		}
-		node=node->next;
-	}
-	return 0;
-}
-
 /* Erase a handle from hash map */
 
 static void

@@ -63,11 +63,6 @@ test()
 	/* p will not be exist on the stack after gc_leave , it can be collected. */
 	gc_leave(p->next,0);
 
-	if (gc_weak(p)) {
-		/* p is alive because we don't call gc_collect to collect it */
-		printf("%p is alive\n",p);
-	}
-
 	return p->next;
 }
 
@@ -80,10 +75,6 @@ main()
 	p=test();
 
 	gc_collect();
-
-	if (gc_weak(p)) {
-		printf("%p is alive\n",p);
-	}
 
 	gc_exit();
 	return 0;

@@ -76,15 +76,6 @@ the relationship automatic)
 	You can also link a memory block to the root by pass "parent" 0.
 	This is useful when you want to hold a global variable.
 
-Sometimes, we want to know whether a raw pointer is collected. 
-"gc_weak" can detect it.
-
-	void* 
-	gc_weak(void *p);
-
-	Return p, when the p is the gc memory block, and it isn't 
-	collected yet.
-
 Collector will not be executed automaticly. 
 
 	void 

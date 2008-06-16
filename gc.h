@@ -25,7 +25,6 @@ void gc_link(void *parent,void *prev,void *now);
 void gc_collect();
 
 void* gc_clone(void *from,size_t sz);
-void* gc_weak(void *p);
 
 void gc_dryrun();
 
