@@ -624,10 +624,10 @@ gc_exit()
 		my_free(E.pool[i].u.n.children);
 		if (E.pool[i].mark >= 0) {
 			void *p=E.pool[i].u.n.mem;
-			if (p && E.pool[i].u.n.finalization) {
+			if (E.pool[i].u.n.finalization) {
 				E.pool[i].u.n.finalization(p);
-				my_free(p);
 			}
+			my_free(p);
 		}
 	}
 	my_free(E.pool);
@@ -678,10 +678,10 @@ gc_collect()
 		if (E.pool[i].mark < E.mark) {
 			if (E.pool[i].mark >= 0) {
 				void *p=E.pool[i].u.n.mem;
-				if (p && E.pool[i].u.n.finalization) {
+				if (E.pool[i].u.n.finalization) {
 					E.pool[i].u.n.finalization(p);
-					my_free(p);
 				}
+				my_free(p);
 				map_erase(i);
 				node_free(i);
 			}
