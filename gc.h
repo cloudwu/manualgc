@@ -13,6 +13,8 @@
 
 #include <stddef.h>
 
+struct gc_weak_table;
+
 void gc_init();
 void gc_exit();
 
@@ -27,5 +29,8 @@ void gc_collect();
 void* gc_clone(void *from,size_t sz);
 
 void gc_dryrun();
+
+struct gc_weak_table* gc_weak_table(void *parent);
+void* gc_weak_next(struct gc_weak_table *cont,int *iter);
 
 #endif

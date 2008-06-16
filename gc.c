@@ -47,6 +47,11 @@ struct node {
 			struct link *children;
 			void (*finalization)(void *);
 		} n;
+		struct {
+			intptr_t mem;
+			struct link *children;
+			intptr_t weak;
+		} c;
 		int free;
 	} u;
 };
@@ -111,6 +116,8 @@ static struct {
 	struct cache_node cache[CACHE_SIZE];
 } E;
 
+#define WEAK_CONTAINER -1
+#define FREED_POINTER -1
 #define CACHE_PARENT_BITS (CACHE_BITS/3)
 #define CACHE_CHILD_BITS (CACHE_BITS-CACHE_PARENT_BITS)
 #define CACHE_PARENT_MASK ((1<<CACHE_PARENT_BITS) -1 )
@@ -624,10 +631,12 @@ gc_exit()
 		my_free(E.pool[i].u.n.children);
 		if (E.pool[i].mark >= 0) {
 			void *p=E.pool[i].u.n.mem;
-			if (E.pool[i].u.n.finalization) {
+			if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
 				E.pool[i].u.n.finalization(p);
 			}
-			my_free(p);
+			if ((intptr_t)p != FREED_POINTER) {
+				my_free(p);
+			}
 		}
 	}
 	my_free(E.pool);
@@ -650,16 +659,31 @@ gc_exit()
 
 /* mark the nodes related to root */
 
+static __inline void
+gc_mark_weak(int weak)
+{
+	if (E.pool[weak].mark <  E.mark) {
+		E.pool[weak].mark=E.mark;
+	}
+}
+
 static void
 gc_mark(int root)
 {
-	if (E.pool[root].mark <  E.mark) {
+	if (E.pool[root].mark <  E.mark+1) {
 		struct link *children=E.pool[root].u.n.children;
-		E.pool[root].mark=E.mark;
+		E.pool[root].mark=E.mark+1;
 		if (children) {
 			int i;
-			for (i=children->number-1;i>=0;i--) {
-				gc_mark(children->children[i]);
+			if (E.pool[root].u.c.weak==WEAK_CONTAINER) {
+				for (i=children->number-1;i>=0;i--) {
+					gc_mark_weak(children->children[i]);
+				}
+			}
+			else {
+				for (i=children->number-1;i>=0;i--) {
+					gc_mark(children->children[i]);
+				}
 			}
 		}
 	}
@@ -678,16 +702,28 @@ gc_collect()
 		if (E.pool[i].mark < E.mark) {
 			if (E.pool[i].mark >= 0) {
 				void *p=E.pool[i].u.n.mem;
-				if (E.pool[i].u.n.finalization) {
+				if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
 					E.pool[i].u.n.finalization(p);
 				}
-				my_free(p);
-				map_erase(i);
+				if ((intptr_t)p != FREED_POINTER) {
+					my_free(p);
+					map_erase(i);
+				}
 				node_free(i);
 			}
 		}
+		else if (E.pool[i].mark == E.mark) {
+			void *p=E.pool[i].u.n.mem;
+			if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
+				E.pool[i].u.n.finalization(p);
+				E.pool[i].u.n.finalization=0;
+			}
+			my_free(p);
+			map_erase(i);
+			E.pool[i].u.c.mem=FREED_POINTER;
+		}
 	}
-	E.mark++;
+	E.mark+=2;
 }
 
 /* only for debug, print all the relationship of all nodes */
@@ -703,8 +739,16 @@ gc_dryrun()
 	for (i=0;i<E.size;i++) {
 		struct link *link=E.pool[i].u.n.children;
 
-		if (E.pool[i].mark >= E.mark) {
-			printf("%d(%p) -> ",i,E.pool[i].u.n.mem);
+		if (E.pool[i].mark >= E.mark+1) {
+			if (E.pool[i].u.c.weak == WEAK_CONTAINER) {
+				printf("%d[weak] -> ",i);
+			}
+			else {
+				printf("%d(%p) -> ",i,E.pool[i].u.n.mem);
+			}
+		}
+		else if (E.pool[i].mark == E.mark) {
+			printf("w %d: ",i);
 		}
 		else if (E.pool[i].mark >= 0 ) {
 			printf("x %d(%p): ",i,E.pool[i].u.n.mem);
@@ -712,6 +756,7 @@ gc_dryrun()
 		else {
 			continue;
 		}
+
 		if (link) {
 			int j;
 			for (j=0;j<link->number;j++) {
@@ -740,6 +785,70 @@ gc_malloc(size_t sz,void *parent,void (*finalization)(void *))
 		stack_push(id);
 	}
 	return ret;
+}
+
+struct gc_weak_table {
+	int node_id;
+};
+
+/* allocate a weak pointer container */
+
+struct gc_weak_table*
+gc_weak_table(void *parent)
+{
+	struct gc_weak_table *ret=my_malloc(sizeof(*ret));
+	ret->node_id=map_id(ret);
+	E.pool[ret->node_id].u.c.weak=WEAK_CONTAINER;
+	if (parent) {
+		gc_link(parent,0,ret);
+	}
+	else {
+		stack_push(ret->node_id);
+	}
+	return ret;
+}
+
+/* iterate the weak container */
+
+void* 
+gc_weak_next(struct gc_weak_table *cont,int *iter)
+{
+	int i,j;
+	struct link *children = E.pool[cont->node_id].u.n.children;
+	if (children==0) {
+		return 0;
+	}
+
+	for (i = (iter==0 ? 0 : *iter) ;i < children->number; i++) {
+		int id=children->children[i];
+		if (id) {
+			if (E.pool[id].u.c.mem == FREED_POINTER) {
+				children->children[i] = 0;
+			}
+			else {
+				if (iter) {
+					*iter=i+1;
+				}
+				return E.pool[id].u.n.mem;
+			}
+		}
+	}
+
+	for (i=0;i<children->number;i++) {
+		if (children->children[i]==0) {
+			break;
+		}
+	}
+
+	for (j=i,++i;i<children->number;i++) {
+		if (children->children[i]!=0) {
+			children->children[j++]=children->children[i];
+		}
+	}
+
+	children->number=j;
+
+	return 0;
 }
 
 /* clone a memory block , this will copy all the edges linked to orginal node */
