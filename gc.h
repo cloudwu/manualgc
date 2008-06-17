@@ -21,7 +21,7 @@ void gc_exit();
 void gc_enter();
 void gc_leave(void *p,...);
 
-void* gc_malloc(size_t sz,void *parent,void (*finalization)(void *));
+void* gc_malloc(size_t sz,void *parent,void (*finalizer)(void *));
 void* gc_realloc(void *p,size_t sz,void *parent);
 void gc_link(void *parent,void *prev,void *now);
 void gc_collect();

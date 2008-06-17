@@ -45,7 +45,7 @@ struct node {
 		struct {
 			void * mem;
 			struct link *children;
-			void (*finalization)(void *);
+			void (*finalizer)(void *);
 		} n;
 		struct {
 			intptr_t mem;
@@ -631,8 +631,8 @@ gc_exit()
 		my_free(E.pool[i].u.n.children);
 		if (E.pool[i].mark >= 0) {
 			void *p=E.pool[i].u.n.mem;
-			if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
-				E.pool[i].u.n.finalization(p);
+			if (E.pool[i].u.n.finalizer && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
+				E.pool[i].u.n.finalizer(p);
 			}
 			if ((intptr_t)p != FREED_POINTER) {
 				my_free(p);
@@ -702,8 +702,8 @@ gc_collect()
 		if (E.pool[i].mark < E.mark) {
 			if (E.pool[i].mark >= 0) {
 				void *p=E.pool[i].u.n.mem;
-				if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
-					E.pool[i].u.n.finalization(p);
+				if (E.pool[i].u.n.finalizer && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
+					E.pool[i].u.n.finalizer(p);
 				}
 				if ((intptr_t)p != FREED_POINTER) {
 					my_free(p);
@@ -714,9 +714,9 @@ gc_collect()
 		}
 		else if (E.pool[i].mark == E.mark) {
 			void *p=E.pool[i].u.n.mem;
-			if (E.pool[i].u.n.finalization && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
-				E.pool[i].u.n.finalization(p);
-				E.pool[i].u.n.finalization=0;
+			if (E.pool[i].u.n.finalizer && E.pool[i].u.c.weak!=WEAK_CONTAINER) {
+				E.pool[i].u.n.finalizer(p);
+				E.pool[i].u.n.finalizer=0;
 			}
 			my_free(p);
 			map_erase(i);
@@ -773,11 +773,11 @@ gc_dryrun()
 /* allocate a memory block , and create a node map to it. node will link to parent */
 
 void*
-gc_malloc(size_t sz,void *parent,void (*finalization)(void *))
+gc_malloc(size_t sz,void *parent,void (*finalizer)(void *))
 {
 	void *ret=my_malloc(sz);
 	int id=map_id(ret);
-	E.pool[id].u.n.finalization=finalization;
+	E.pool[id].u.n.finalizer=finalizer;
 	if (parent) {
 		gc_link(parent,0,ret);
 	}
@@ -829,6 +829,7 @@ gc_weak_next(struct gc_weak_table *cont,int *iter)
 				if (iter) {
 					*iter=i+1;
 				}
+				stack_push(id);
 				return E.pool[id].u.n.mem;
 			}
 		}
@@ -864,7 +865,7 @@ gc_clone(void *from,size_t sz)
 
 	cache_flush();
 	memcpy(to,from,sz);
-	E.pool[to_id].u.n.finalization=E.pool[from_id].u.n.finalization;
+	E.pool[to_id].u.n.finalizer=E.pool[from_id].u.n.finalizer;
 	E.pool[to_id].u.n.children=link_expand(E.pool[to_id].u.n.children,from_children->number);
 	memcpy(E.pool[to_id].u.n.children,from_children,sizeof(*from_children) + (from_children->number-1)*sizeof(int));
 	return to;
@@ -894,7 +895,7 @@ gc_realloc(void *p,size_t sz,void *parent)
 		E.pool[new_id].u.n.children=E.pool[old_id].u.n.children;
 		E.pool[old_id].u.n.children=tmp;
 
-		E.pool[new_id].u.n.finalization=E.pool[old_id].u.n.finalization;
+		E.pool[new_id].u.n.finalizer=E.pool[old_id].u.n.finalizer;
 
 		if (parent) {
 			gc_link(parent,p,ret);

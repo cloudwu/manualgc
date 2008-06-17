@@ -22,7 +22,7 @@ Then, you can use 'gc_malloc' to allocate a memory block . It's return
 value is the pointer to the memory (like malloc).
 
 	void* 
-	gc_malloc(size_t sz,void *parent,void (*finalization)(void *));
+	gc_malloc(size_t sz,void *parent,void (*finalizer)(void *));
 
 	void* 
 	gc_realloc(void *p,size_t sz,void *parent);
@@ -32,8 +32,8 @@ value is the pointer to the memory (like malloc).
 	*parent* should be the memory's life time depend on.
 		*parent* can be 0 , that is to say the memory is temporary.
 
-	*finalization* will be called when the memory collect.
-		*finalization* can be 0 , collector will do nothing.
+	*finalizer* will be called when the memory collect.
+		*finalizer* can be 0 , collector will do nothing.
 
 "gc_enter" and "gc_leave" is important , they tell the collector the
 life time of temporary memory blocks. All the memory allocated by 
@@ -83,7 +83,7 @@ Collector will not be executed automaticly.
 
 	This will collect all the memory block can no longer be 
 	otherwise accessed. Before free it , collector will can the 
-	finalization if you provided.
+	finalizer if you provided.
 
 	void 
 	gc_dryrun();
