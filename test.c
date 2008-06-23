@@ -59,6 +59,13 @@ test(struct gc_weak_table *weak)
 
 	p->next=new_test(p);
 
+	/* one node can be linked to parent more than once */
+	gc_link(p,0,p->next);
+
+	gc_dryrun();
+
+	gc_link(p,p->next,0);
+
 	gc_dryrun();
 
 	/* p will not be exist on the stack after gc_leave , it can be collected. */
@@ -74,9 +81,11 @@ iterate_weak_table(struct gc_weak_table *weak)
 {
 	int iter=0;
 	void *p;
+	gc_enter();
 	while ((p=gc_weak_next(weak,&iter)) != 0) {
 		printf("%p is alive\n",p);
 	}
+	gc_leave(0);
 }
 
 int	
@@ -89,7 +98,11 @@ main()
 	weak=gc_weak_table(0);
 	p=test(weak);
 
+	gc_enter();
+
 	printf("%p is in weak table\n",gc_weak_next(weak,0));
+
+	gc_leave(0);
 
 	gc_collect();
 

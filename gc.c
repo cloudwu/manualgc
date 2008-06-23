@@ -140,14 +140,9 @@ cache_insert(int parent,int child)
 		cn->child=child;
 		return true;
 	}
-	else if (cn->parent == parent) {
-		if (cn->child == child) {
-			return true;
-		}
-		else if ((cn->child ^ child) == UNSET_MASK) {
-			cn->parent = -1;
-			return true;
-		}
+	else if (cn->parent == parent && (cn->child ^ child) == UNSET_MASK) {
+		cn->parent = -1;
+		return true;
 	}
 	return false;
 }
@@ -270,23 +265,20 @@ cache_flush()
 
 		if (children) {
 			while (j<children->number) {
-				int child,c;
+				int child;
 				if (head>=next) {
 					goto copy_next;
 				}
 
 				child=head->child;
-				c=child & ~UNSET_MASK;
 				children->children[k]=children->children[j];
-				if (c==children->children[j]) {
-					if (child!=c) {
-						--k;
-					}
+				if (child == (children->children[j] | UNSET_MASK)) {
+					--k;
 					head->parent=-1;
 					--sz;
 					++head;
 				}
-				else if (c < children->children[j]) {
+				else if ((child & ~UNSET_MASK) < children->children[j]) {
 					break;
 				}
 				++j;
@@ -303,23 +295,20 @@ cache_flush()
 		children->number+=sz;
 
 		while(j<children->number) {
-			int child,c;
+			int child;
 			if (head>=next) {
 				goto copy_next;
 			}
 
 			child=head->child;
-			c=child & ~UNSET_MASK;
-			if (c==children->children[j]) {
-				if (child!=c) {
-					--k;
-				}
+			if (child == (children->children[j] | UNSET_MASK)) {
+				--k;
 				head->parent=-1;
 				++head;
 			}
-			else if (c < children->children[j]) {
-				assert(c==child);
-				children->children[k]=c;
+			else if ((child & ~UNSET_MASK) < children->children[j]) {
+				assert(child >= 0 );
+				children->children[k]=child;
 				head->parent=-1;
 				++head;
 				--j;
@@ -345,8 +334,8 @@ cache_flush()
 			for (;j<children->number;j++,k++) {
 				children->children[k]=children->children[j];
 			}
+			children->number=k;
 		}
-		children->number=k;
 	}
 
 	E.cache_dirty=false;
