@@ -892,6 +892,9 @@ gc_realloc(void *p,size_t sz,void *parent)
 		else {
 			stack_push(new_id);
 		}
+
+		map_erase(old_id);
+		E.pool[old_id].u.c.mem=FREED_POINTER;
 	}
 
 	return ret;
