@@ -76,19 +76,19 @@ the relationship automatic)
 	You can also link a memory block to the root by pass "parent" 0.
 	This is useful when you want to hold a global variable.
 
-Collector will not be executed automaticly. 
+Collector will not be executed automatically. 
 
 	void 
 	gc_collect();
 
-	This will collect all the memory block can no longer be 
-	otherwise accessed. Before free it , collector will can the 
+	This will collect all the memory block that can no longer be 
+	otherwise accessed. Before free it , collector will call the 
 	finalizer if you provided.
 
 	void 
 	gc_dryrun();
 
-	Only for debug, it's print some useful information instead of 
+	Only for debug, it will print some useful information instead of 
 	collecting the garbage.
 
 
