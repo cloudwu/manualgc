@@ -290,9 +290,9 @@ cache_flush()
 			assert(children);
 			memmove(children->children + j + sz, children->children +j , (children->number - j) * sizeof(int));
 			j+=sz;
+			children->number+=sz;
 		}
 
-		children->number+=sz;
 
 		while(j<children->number) {
 			int child;
@@ -665,8 +665,32 @@ gc_mark(int root)
 		if (children) {
 			int i;
 			if (E.pool[root].u.c.weak==WEAK_CONTAINER) {
+				bool merge=false;
 				for (i=children->number-1;i>=0;i--) {
-					gc_mark_weak(children->children[i]);
+					int child=children->children[i];
+					if ((intptr_t)E.pool[child].u.n.mem == FREED_POINTER) {
+						children->children[i]=0;
+						merge=true;
+					}
+					else
+						gc_mark_weak(child);
+				}
+
+				if (merge) {
+					int j;
+					for (i=0;i<children->number;i++) {
+						if (children->children[i]==0) {
+							break;
+						}
+					}
+
+					for (j=i,++i;i<children->number;i++) {
+						if (children->children[i]!=0) {
+							children->children[j++]=children->children[i];
+						}
+					}
+
+					children->number=j;
 				}
 			}
 			else {
