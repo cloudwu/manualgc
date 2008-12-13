@@ -423,6 +423,8 @@ map_id(void *p)
 		map_expand();
 	}
 
+	++E.map.number;
+
 	if (E.map.free) {
 		node=E.map.free;
 		E.map.free=node->next;
@@ -455,6 +457,7 @@ map_erase(int id)
 		*node=find->next;
 		find->next=E.map.free;
 		E.map.free=find;
+		--E.map.number;
 	}
 }
 
@@ -644,6 +647,7 @@ gc_exit()
 		E.map.free=p;
 	}
 	my_free(E.stack.data);
+	E.map.number=0;
 }
 
 /* mark the nodes related to root */
