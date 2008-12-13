@@ -831,7 +831,9 @@ void*
 gc_weak_next(struct gc_weak_table *cont,int *iter)
 {
 	int i,j;
-	struct link *children = E.pool[cont->node_id].u.n.children;
+	struct link *children;
+	cache_flush();
+	children = E.pool[cont->node_id].u.n.children;
 	if (children==0) {
 		return 0;
 	}
