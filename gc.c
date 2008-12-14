@@ -182,9 +182,6 @@ node_alloc(void *p)
 	if (ret->u.n.children) {
 		ret->u.n.children->number=0;
 	}
-	else {
-		ret->u.n.children=0;
-	}
 	return ret-E.pool;
 }
 
