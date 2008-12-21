@@ -179,6 +179,7 @@ node_alloc(void *p)
 	}
 	ret->u.n.mem=p;
 	ret->mark=0;
+	ret->u.n.finalizer=0;
 	if (ret->u.n.children) {
 		ret->u.n.children->number=0;
 	}
