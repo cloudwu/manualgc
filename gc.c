@@ -270,13 +270,13 @@ cache_flush()
 
 				child=head->child;
 				children->children[k]=children->children[j];
-				if (child == (children->children[j] | UNSET_MASK)) {
+				if (child == (int)((children->children[j] | UNSET_MASK))) {
 					--k;
 					head->parent=-1;
 					--sz;
 					++head;
 				}
-				else if ((child & ~UNSET_MASK) < children->children[j]) {
+				else if ((int)(child & ~UNSET_MASK) < children->children[j]) {
 					break;
 				}
 				++j;
@@ -299,12 +299,12 @@ cache_flush()
 			}
 
 			child=head->child;
-			if (child == (children->children[j] | UNSET_MASK)) {
+			if (child == (int)(children->children[j] | UNSET_MASK)) {
 				--k;
 				head->parent=-1;
 				++head;
 			}
-			else if ((child & ~UNSET_MASK) < children->children[j]) {
+			else if ((int)(child & ~UNSET_MASK) < children->children[j]) {
 				assert(child >= 0 );
 				children->children[k]=child;
 				head->parent=-1;
