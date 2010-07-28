@@ -244,7 +244,7 @@ cache_flush()
 		int j,k;
 
 		if (parent==-1) {
-			return;
+			break;
 		}
 
 		head=&E.cache[i];
